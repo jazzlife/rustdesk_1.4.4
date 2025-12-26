@@ -1,0 +1,12 @@
+name: Flutter Android Only Build
+
+on:
+  workflow_dispatch:
+
+jobs:
+  run-flutter-androids-build:
+    uses: ./.github/workflows/flutter-build-android.yml
+    secrets: inherit
+    with:
+      upload-artifact: true
+      upload-tag: "custom"
