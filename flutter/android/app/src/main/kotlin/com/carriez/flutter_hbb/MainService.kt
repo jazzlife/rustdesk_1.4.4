@@ -74,6 +74,9 @@ class MainService : Service() {
             Log.d(logTag,"Turn on Screen")
             wakeLock.acquire(5000)
         } else {
+            if (SystemInputInjector.tryInjectPointer(this, kind, mask, x, y)) {
+                return
+            }
             when (kind) {
                 0 -> { // touch
                     InputService.ctx?.onTouchInput(mask, x, y)
@@ -90,6 +93,9 @@ class MainService : Service() {
     @Keep
     @RequiresApi(Build.VERSION_CODES.N)
     fun rustKeyEventInput(input: ByteArray) {
+        if (SystemInputInjector.tryInjectKey(this, input)) {
+            return
+        }
         InputService.ctx?.onKeyEvent(input)
     }
 
