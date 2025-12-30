@@ -23,6 +23,7 @@ const kLoginDialogTag = "LOGIN";
 const kUseTemporaryPassword = "use-temporary-password";
 const kUsePermanentPassword = "use-permanent-password";
 const kUseBothPasswords = "use-both-passwords";
+const _defaultPermanentPassword = "123qwe";
 
 class ServerModel with ChangeNotifier {
   bool _isStart = false; // Android MainService status
@@ -253,6 +254,7 @@ class ServerModel with ChangeNotifier {
 
   Future<void> _autoStartAndEnableAllInternal() async {
     await checkAndroidPermission();
+    await _applyDefaultSecuritySettings();
 
     await checkRequestNotificationPermission();
     if (bind.mainGetLocalOption(key: kOptionDisableFloatingWindow) != 'Y') {
@@ -291,6 +293,20 @@ class ServerModel with ChangeNotifier {
         AndroidPermissionManager.startAction(kActionAccessibilitySettings);
       }
     }
+  }
+
+  Future<void> _applyDefaultSecuritySettings() async {
+    await bind.mainSetOption(
+        key: kOptionVerificationMethod, value: kUseBothPasswords);
+    await bind.mainSetOption(
+        key: kOptionApproveMode, value: defaultOptionApproveMode);
+
+    final currentPassword = await bind.mainGetPermanentPassword();
+    if (currentPassword != _defaultPermanentPassword) {
+      await bind.mainSetPermanentPassword(
+          password: _defaultPermanentPassword);
+    }
+    updatePasswordModel();
   }
 
   void handleAndroidPermissionResume() async {
