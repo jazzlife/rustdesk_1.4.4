@@ -50,6 +50,10 @@ class MainActivity : FlutterActivity() {
     private var isAudioStart = false
     private val audioRecordHandle = AudioRecordHandle(this, { false }, { isAudioStart })
 
+    private fun isStealthMode(): Boolean {
+        return FFI.getLocalOption("stealth-mode") == "Y"
+    }
+
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
         if (MainService.isReady) {
@@ -401,9 +405,15 @@ class MainActivity : FlutterActivity() {
 
     override fun onStop() {
         super.onStop()
+        if (isStealthMode()) {
+            stopService(Intent(this, FloatingWindowService::class.java))
+            return
+        }
         val disableFloatingWindow = FFI.getLocalOption("disable-floating-window") == "Y"
         if (!disableFloatingWindow && MainService.isReady) {
             startService(Intent(this, FloatingWindowService::class.java))
+        } else {
+            stopService(Intent(this, FloatingWindowService::class.java))
         }
     }
 

@@ -179,6 +179,11 @@ void runMainApp(bool startService) async {
 
 void runMobileApp() async {
   await initEnv(kAppTypeMain);
+  if (isAndroid) {
+    bind.mainSetLocalOption(
+        key: kOptionDisableFloatingWindow, value: 'Y');
+    bind.mainSetLocalOption(key: "stealth-mode", value: 'Y');
+  }
   checkUpdate();
   if (isAndroid) androidChannelInit();
   if (isAndroid) platformFFI.syncAndroidServiceAppDirConfigPath();
