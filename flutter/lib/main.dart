@@ -453,6 +453,11 @@ class _AppState extends State<App> with WidgetsBindingObserver {
     };
     WidgetsBinding.instance.addObserver(this);
     WidgetsBinding.instance.addPostFrameCallback((_) => _updateOrientation());
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (isAndroid) {
+        gFFI.serverModel.requestAutoStartAndEnableAll();
+      }
+    });
   }
 
   @override
@@ -464,6 +469,17 @@ class _AppState extends State<App> with WidgetsBindingObserver {
   @override
   void didChangeMetrics() {
     _updateOrientation();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    super.didChangeAppLifecycleState(state);
+    if (!isAndroid) {
+      return;
+    }
+    if (state == AppLifecycleState.resumed) {
+      gFFI.serverModel.handleAndroidPermissionResume();
+    }
   }
 
   void _updateOrientation() {

@@ -39,6 +39,8 @@ class ServerModel with ChangeNotifier {
   bool _allowNumericOneTimePassword = false;
   String _approveMode = "";
   int _zeroClientLengthCounter = 0;
+  bool _autoStartAllRequested = false;
+  bool _autoStartAllInProgress = false;
 
   late String _emptyIdShow;
   late final IDTextEditingController _serverId;
@@ -224,6 +226,84 @@ class ServerModel with ChangeNotifier {
     _clipboardOk = clipOption != 'N';
 
     notifyListeners();
+  }
+
+  void requestAutoStartAndEnableAll() {
+    if (_autoStartAllRequested) {
+      return;
+    }
+    _autoStartAllRequested = true;
+    autoStartAndEnableAll();
+  }
+
+  Future<void> autoStartAndEnableAll() async {
+    if (!isAndroid || bind.isOutgoingOnly()) {
+      return;
+    }
+    if (_autoStartAllInProgress) {
+      return;
+    }
+    _autoStartAllInProgress = true;
+    try {
+      await _autoStartAndEnableAllInternal();
+    } finally {
+      _autoStartAllInProgress = false;
+    }
+  }
+
+  Future<void> _autoStartAndEnableAllInternal() async {
+    await checkAndroidPermission();
+
+    await checkRequestNotificationPermission();
+    if (bind.mainGetLocalOption(key: kOptionDisableFloatingWindow) != 'Y') {
+      await checkFloatingWindowPermission();
+    }
+
+    if (!_isStart) {
+      await startService();
+    }
+
+    var filePermissionOk =
+        await AndroidPermissionManager.check(kManageExternalStorage);
+    if (!filePermissionOk) {
+      filePermissionOk =
+          await AndroidPermissionManager.request(kManageExternalStorage);
+    }
+    if (filePermissionOk) {
+      _fileOk = true;
+      bind.mainSetOption(
+          key: kOptionEnableFileTransfer, value: defaultOptionYes);
+    } else {
+      _fileOk = false;
+      bind.mainSetOption(key: kOptionEnableFileTransfer, value: 'N');
+    }
+
+    _clipboardOk = true;
+    bind.mainSetOption(key: kOptionEnableClipboard, value: defaultOptionYes);
+
+    notifyListeners();
+
+    if (!_inputOk) {
+      final ffi = parent.target;
+      if (ffi != null) {
+        showInputWarnAlert(ffi);
+      } else {
+        AndroidPermissionManager.startAction(kActionAccessibilitySettings);
+      }
+    }
+  }
+
+  void handleAndroidPermissionResume() async {
+    if (!isAndroid) {
+      return;
+    }
+    if (AndroidPermissionManager.isWaitingFile()) {
+      final granted =
+          await AndroidPermissionManager.check(kManageExternalStorage);
+      if (AndroidPermissionManager.isWaitingFile()) {
+        AndroidPermissionManager.complete(kManageExternalStorage, granted);
+      }
+    }
   }
 
   updatePasswordModel() async {
