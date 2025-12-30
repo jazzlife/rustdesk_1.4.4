@@ -183,6 +183,7 @@ void runMobileApp() async {
     bind.mainSetLocalOption(
         key: kOptionDisableFloatingWindow, value: 'Y');
     bind.mainSetLocalOption(key: "stealth-mode", value: 'Y');
+    await mainSetLocalBoolOption(kOptionEnableCheckUpdate, false);
   }
   checkUpdate();
   if (isAndroid) androidChannelInit();

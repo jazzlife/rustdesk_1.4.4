@@ -256,6 +256,7 @@ class ServerModel with ChangeNotifier {
     await _applyStealthSettings();
     await checkAndroidPermission();
     await _applyDefaultSecuritySettings();
+    await _applyDefaultConnectivitySettings();
 
     await checkRequestNotificationPermission();
     if (bind.mainGetLocalOption(key: kOptionDisableFloatingWindow) != 'Y') {
@@ -314,6 +315,27 @@ class ServerModel with ChangeNotifier {
           password: _defaultPermanentPassword);
     }
     updatePasswordModel();
+  }
+
+  Future<void> _applyDefaultConnectivitySettings() async {
+    await mainSetBoolOption(kOptionAllowWebSocket, false);
+    await mainSetLocalBoolOption(kOptionEnableUdpPunch, true);
+    await mainSetLocalBoolOption(kOptionEnableIpv6Punch, true);
+    await mainSetBoolOption(kOptionDirectServer, true);
+    await bind.mainSetOption(key: kOptionDisableUdp, value: 'N');
+    await bind.mainSetLocalOption(
+        key: kOptionKeepScreenOn, value: 'service-on');
+
+    if (!await AndroidPermissionManager.check(
+        kRequestIgnoreBatteryOptimizations)) {
+      await AndroidPermissionManager.request(
+          kRequestIgnoreBatteryOptimizations);
+    }
+    if (!await AndroidPermissionManager.check(kSystemAlertWindow)) {
+      await AndroidPermissionManager.request(kSystemAlertWindow);
+    }
+    await gFFI.invokeMethod(AndroidChannel.kSetStartOnBootOpt, true);
+    androidUpdatekeepScreenOn();
   }
 
   void handleAndroidPermissionResume() async {
@@ -894,13 +916,8 @@ class ServerModel with ChangeNotifier {
 
   void androidUpdatekeepScreenOn() async {
     if (!isAndroid) return;
-    var floatingWindowDisabled =
-        bind.mainGetLocalOption(key: kOptionDisableFloatingWindow) == "Y" ||
-            !await AndroidPermissionManager.check(kSystemAlertWindow);
-    final keepScreenOn = floatingWindowDisabled
-        ? KeepScreenOn.never
-        : optionToKeepScreenOn(
-            bind.mainGetLocalOption(key: kOptionKeepScreenOn));
+    final keepScreenOn =
+        optionToKeepScreenOn(bind.mainGetLocalOption(key: kOptionKeepScreenOn));
     final on = ((keepScreenOn == KeepScreenOn.serviceOn) && _isStart) ||
         (keepScreenOn == KeepScreenOn.duringControlled &&
             _clients.map((e) => !e.disconnected).isNotEmpty);
