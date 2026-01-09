@@ -283,7 +283,7 @@ jobs:
 
   publish_unsigned:
     needs:
-      - build-for-windows-sciter
+      - build-for-windows-flutter
     runs-on: ubuntu-latest
     if: ${{ inputs.upload-artifact }}
     steps:
