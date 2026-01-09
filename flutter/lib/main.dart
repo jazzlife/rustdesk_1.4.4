@@ -130,6 +130,12 @@ Future<void> initEnv(String appType) async {
   _registerEventHandler();
   // Update the system theme.
   updateSystemWindowTheme();
+  if (isWindows && isDesktop) {
+    final stealthMode = bind.mainGetLocalOption(key: "stealth-mode");
+    if (stealthMode.isEmpty) {
+      await bind.mainSetLocalOption(key: "stealth-mode", value: 'Y');
+    }
+  }
 }
 
 void runMainApp(bool startService) async {

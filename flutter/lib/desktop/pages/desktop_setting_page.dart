@@ -1199,6 +1199,7 @@ class _SafetyState extends State<_Safety> with AutomaticKeepAliveClientMixin {
     bool enabled = !locked;
     return _Card(title: 'Security', children: [
       shareRdp(context, enabled),
+      if (isWindows) stealthMode(context, enabled),
       _OptionCheckBox(context, 'Deny LAN discovery', 'enable-lan-discovery',
           reverse: true, enabled: enabled),
       ...directIp(context),
@@ -1236,6 +1237,36 @@ class _SafetyState extends State<_Safety> with AutomaticKeepAliveClientMixin {
             ],
           ).marginOnly(left: _kCheckBoxLeftMargin),
           onTap: enabled ? () => onChanged(!value) : null),
+    );
+  }
+
+  Widget stealthMode(BuildContext context, bool enabled) {
+    final isOptFixed = isOptionFixed("stealth-mode");
+    final canToggle = enabled && !isOptFixed;
+    final current = bind.mainGetLocalOption(key: "stealth-mode");
+    final value = current.isEmpty || current == 'Y';
+    onChanged(bool next) async {
+      await bind.mainSetLocalOption(
+          key: "stealth-mode", value: next ? 'Y' : 'N');
+      setState(() {});
+    }
+
+    return GestureDetector(
+      child: Row(
+        children: [
+          Checkbox(
+                  value: value,
+                  onChanged: canToggle ? (_) => onChanged(!value) : null)
+              .marginOnly(right: 5),
+          Expanded(
+            child: Text(
+              translate('Enable stealth mode'),
+              style: TextStyle(color: disabledTextColor(context, canToggle)),
+            ),
+          )
+        ],
+      ).marginOnly(left: _kCheckBoxLeftMargin),
+      onTap: canToggle ? () => onChanged(!value) : null,
     );
   }
 
