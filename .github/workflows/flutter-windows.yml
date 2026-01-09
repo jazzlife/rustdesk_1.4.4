@@ -7,7 +7,7 @@ on:
       - '*'
 
 jobs:
-  run-flutter-androids-build:
+  run-flutter-windows-build:
     uses: ./.github/workflows/flutter-build-windows.yml
     secrets: inherit
     with:
