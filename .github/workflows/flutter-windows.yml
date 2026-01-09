@@ -1,0 +1,15 @@
+name: Flutter Windows Only Build
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - '*'
+
+jobs:
+  run-flutter-androids-build:
+    uses: ./.github/workflows/flutter-build-windows.yml
+    secrets: inherit
+    with:
+      upload-artifact: true
+      upload-tag: ${{ github.ref_type == 'tag' && github.ref_name || 'custom' }}
